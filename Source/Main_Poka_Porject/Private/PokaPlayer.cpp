@@ -477,6 +477,12 @@ void APokaPlayer::TryInteract()
     if (CurrentInteractable)
     {
         CurrentInteractable->Interact(this);
-        CurrentInteractable = nullptr; // ⭐ 아이템을 먹었으므로 타겟을 즉시 비워줍니다!
+        CurrentInteractable = nullptr;
+
+        // ⭐ [핵심 안전망] 아이템을 먹었으니 화면에 켜져 있던 [E] 획득 글씨도 즉시 숨깁니다!
+        if (InteractPromptWidget)
+        {
+            InteractPromptWidget->SetVisibility(ESlateVisibility::Collapsed);
+        }
     }
 }
