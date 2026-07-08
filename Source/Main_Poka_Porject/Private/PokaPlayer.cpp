@@ -15,6 +15,9 @@
 #include "Engine/Engine.h" // GEngine 디버그 메시지 인식용
 #include "Blueprint/UserWidget.h"
 #include "Components/SlateWrapperTypes.h"
+#include "Engine/Texture2D.h"
+#include "PickupBattery.h"
+#include "PickupAmulet.h"
 
 APokaPlayer::APokaPlayer()
 {
@@ -357,12 +360,11 @@ void APokaPlayer::DrainBattery()
     }
 }
 
-//  퀵슬롯 아이템 교체 (피의 거짓 벨트 교체 방식)
+// 퀵슬롯 아이템 교체 (피의 거짓 벨트 교체 방식)
 void APokaPlayer::SwitchItem()
 {
     if (bIsDead) return;
 
-    // 배터리면 부적으로, 부적이면 배터리로 토글 순환
     if (CurrentSelectedItem == EItemType::Battery)
     {
         CurrentSelectedItem = EItemType::Amulet;
@@ -372,7 +374,7 @@ void APokaPlayer::SwitchItem()
         CurrentSelectedItem = EItemType::Battery;
     }
 
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("퀵슬롯 아이템 교체됨"));
+    UpdateQuickSlotUI();
 }
 
 // 현재 선택된 아이템 사용
@@ -380,30 +382,52 @@ void APokaPlayer::UseCurrentItem()
 {
     if (bIsDead) return;
 
-    // 1. 배터리 사용 로직
     if (CurrentSelectedItem == EItemType::Battery && BatteryCount > 0)
     {
         BatteryCount--;
-        CurrentBattery = MaxBattery; // 손전등 즉시 100% 충전
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, TEXT("배터리 사용: 손전등 충전 완료!"));
+        CurrentBattery = MaxBattery;
+        UpdateQuickSlotUI();
     }
-    // 2. 부적 사용 로직
     else if (CurrentSelectedItem == EItemType::Amulet && AmuletCount > 0)
     {
         AmuletCount--;
-        bIsInvisibleToGhost = true; // 은신 활성화
-
-        // [타이머] 60.0초(1분) 뒤에 DeactivateAmulet 함수를 자동으로 호출
+        bIsInvisibleToGhost = true;
         GetWorldTimerManager().SetTimer(AmuletTimerHandle, this, &APokaPlayer::DeactivateAmulet, 60.0f, false);
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Purple, TEXT("부적 사용: 1분간 귀신이 플레이어를 보지 못합니다!"));
+        UpdateQuickSlotUI();
     }
 }
 
-// 1분 뒤 호출되는 부적 해제 함수
+void APokaPlayer::UpdateQuickSlotUI()
+{
+    if (!QuickSlotWidget) return;
+
+    struct FSlotArgs
+    {
+        UTexture2D* Icon = nullptr;
+        int32 Count = 0;
+    };
+    FSlotArgs Args;
+
+    if (CurrentSelectedItem == EItemType::Battery)
+    {
+        Args.Icon = Icon_Battery;
+        Args.Count = BatteryCount;
+    }
+    else if (CurrentSelectedItem == EItemType::Amulet)
+    {
+        Args.Icon = Icon_Amulet;
+        Args.Count = AmuletCount;
+    }
+
+    if (UFunction* Func = QuickSlotWidget->FindFunction(FName("UpdateSlot")))
+    {
+        QuickSlotWidget->ProcessEvent(Func, &Args);
+    }
+}
+
 void APokaPlayer::DeactivateAmulet()
 {
     bIsInvisibleToGhost = false;
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("부적의 효과가 만료되었습니다! 귀신이 다시 인지합니다."));
 }
 
 
@@ -472,17 +496,49 @@ void APokaPlayer::CheckForInteractables()
 
 void APokaPlayer::TryInteract()
 {
-    if (bIsDead) return;
+    if (bIsDead || !CurrentInteractable) return;
 
-    if (CurrentInteractable)
+    AActor* TargetActor = Cast<AActor>(CurrentInteractable);
+    if (!TargetActor) return;
+
+    UTexture2D* AcquiredIcon = nullptr;
+    FText AcquiredName = FText::GetEmpty();
+
+    if (Cast<APickupBattery>(TargetActor))
     {
-        CurrentInteractable->Interact(this);
-        CurrentInteractable = nullptr;
+        AcquiredIcon = Icon_Battery;
+        AcquiredName = FText::FromString(TEXT("배터리"));
+    }
+    else if (Cast<APickupAmulet>(TargetActor))
+    {
+        AcquiredIcon = Icon_Amulet;
+        AcquiredName = FText::FromString(TEXT("신비로운 부적"));
+    }
 
-        // ⭐ [핵심 안전망] 아이템을 먹었으니 화면에 켜져 있던 [E] 획득 글씨도 즉시 숨깁니다!
-        if (InteractPromptWidget)
+    CurrentInteractable->Interact(this);
+    CurrentInteractable = nullptr;
+
+    if (InteractPromptWidget)
+    {
+        InteractPromptWidget->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (ItemAcquiredWidget && AcquiredIcon)
+    {
+        struct FAcquiredArgs
         {
-            InteractPromptWidget->SetVisibility(ESlateVisibility::Collapsed);
+            UTexture2D* ItemIcon = nullptr;
+            FText ItemName = FText::GetEmpty();
+        };
+        FAcquiredArgs Args;
+        Args.ItemIcon = AcquiredIcon;
+        Args.ItemName = AcquiredName;
+
+        if (UFunction* Func = ItemAcquiredWidget->FindFunction(FName("ShowAcquired")))
+        {
+            ItemAcquiredWidget->ProcessEvent(Func, &Args);
         }
     }
+
+    UpdateQuickSlotUI();
 }

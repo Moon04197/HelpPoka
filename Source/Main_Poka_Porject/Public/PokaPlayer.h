@@ -15,6 +15,7 @@ class UAnimMontage;
 class UStaticMeshComponent;
 class USpotLightComponent;
 class UUserWidget;
+class UTexture2D;
 
 //  피의 거짓 스타일 퀵슬롯 구분을 위한 열거형
 UENUM(BlueprintType)
@@ -214,8 +215,24 @@ public:
     void SwitchItem();
     void UseCurrentItem();
 
+    // UI 및 아이콘 변수 (블루프린트 Details에서 설정)
     UPROPERTY(BlueprintReadWrite, Category = "UI")
-    class UUserWidget* InteractPromptWidget;
+    class UUserWidget* InteractPromptWidget = nullptr;
+
+    UPROPERTY(BlueprintReadWrite, Category = "UI")
+    class UUserWidget* ItemAcquiredWidget = nullptr;
+
+    UPROPERTY(BlueprintReadWrite, Category = "UI")
+    class UUserWidget* QuickSlotWidget = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Icons")
+    class UTexture2D* Icon_Battery = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Icons")
+    class UTexture2D* Icon_Amulet = nullptr;
+
+    UFUNCTION(BlueprintCallable, Category = "UI")
+    void UpdateQuickSlotUI();
 
     UPROPERTY(BlueprintReadOnly, Category = "Input")
     bool bIsUsingGamepad = false;
