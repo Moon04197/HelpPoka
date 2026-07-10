@@ -12,7 +12,7 @@ APickupBattery::APickupBattery()
 
 FText APickupBattery::GetInteractText()
 {
-    return FText::FromString(TEXT("배터리 [E 키를 눌러 획득]"));
+    return FText::FromString(TEXT("획득한다"));
 }
 
 void APickupBattery::Interact(APokaPlayer* PlayerCharacter)

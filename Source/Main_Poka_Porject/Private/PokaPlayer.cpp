@@ -394,6 +394,7 @@ void APokaPlayer::UseCurrentItem()
         bIsInvisibleToGhost = true;
         GetWorldTimerManager().SetTimer(AmuletTimerHandle, this, &APokaPlayer::DeactivateAmulet, 60.0f, false);
         UpdateQuickSlotUI();
+        OnAmuletActivated();
     }
 }
 
@@ -428,6 +429,7 @@ void APokaPlayer::UpdateQuickSlotUI()
 void APokaPlayer::DeactivateAmulet()
 {
     bIsInvisibleToGhost = false;
+    OnAmuletDeactivated();
 }
 
 
@@ -504,15 +506,27 @@ void APokaPlayer::TryInteract()
     UTexture2D* AcquiredIcon = nullptr;
     FText AcquiredName = FText::GetEmpty();
 
+    const bool bWasInventoryEmpty = (BatteryCount == 0 && AmuletCount == 0);
+
     if (Cast<APickupBattery>(TargetActor))
     {
         AcquiredIcon = Icon_Battery;
         AcquiredName = FText::FromString(TEXT("배터리"));
+
+        if (bWasInventoryEmpty)
+        {
+            CurrentSelectedItem = EItemType::Battery;
+        }
     }
     else if (Cast<APickupAmulet>(TargetActor))
     {
         AcquiredIcon = Icon_Amulet;
         AcquiredName = FText::FromString(TEXT("신비로운 부적"));
+
+        if (bWasInventoryEmpty)
+        {
+            CurrentSelectedItem = EItemType::Amulet;
+        }
     }
 
     CurrentInteractable->Interact(this);

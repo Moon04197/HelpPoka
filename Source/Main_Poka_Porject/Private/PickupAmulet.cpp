@@ -14,7 +14,7 @@ APickupAmulet::APickupAmulet()
 // 1. 플레이어가 카메라로 바라봤을 때 띄울 안내 글씨
 FText APickupAmulet::GetInteractText()
 {
-    return FText::FromString(TEXT("신비로운 부적 [E 키를 눌러 획득]"));
+    return FText::FromString(TEXT("획득한다"));
 }
 
 // 2. E키를 눌렀을 때 실행되는 상호작용 로직

@@ -234,6 +234,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "UI")
     void UpdateQuickSlotUI();
 
+    UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+    void OnAmuletActivated();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+    void OnAmuletDeactivated();
+
     UPROPERTY(BlueprintReadOnly, Category = "Input")
     bool bIsUsingGamepad = false;
 
